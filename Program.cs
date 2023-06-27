@@ -1,8 +1,13 @@
 using System;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using System.Drawing;
+using System.Security.Cryptography.X509Certificates;
 
 public class ScreenScanner
 {
@@ -33,6 +38,8 @@ public class ScreenScanner
 
     const int SM_CXSCREEN = 0;
     const int SM_CYSCREEN = 1;
+
+    public Bitmap bmp = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
 
     private const int MOUSEEVENTF_LEFTDOWN = 0x02;
     private const int MOUSEEVENTF_LEFTUP = 0x04;
@@ -71,13 +78,31 @@ public class ScreenScanner
     public const int N8 = 0x68; // Numpad Key 8 
     public const int N9 = 0x69; // Numpad Key 9 
     public const int N0 = 0x60; // Numpad Key 0
+    private Cursor Cursor;
 
     public static bool IsRedColor(int r, int g, int b)
     {
         // Check if the color falls within the range of red shades
         return r >= 200 && g <= 50 && b <= 50;
     }
+    public static bool IsBrightGreen(int r, int b, int g)
+    {
+        // Define the range of RGB values for bright green
+        int greenThreshold = 250;
+        int bThreshold = 50;
+        int rThreshold = 50;
+        // Check if the RGB values fall within the range of bright green shades
+        if (r < rThreshold && b < bThreshold)
+        {
+            if (g >= greenThreshold)
+            {
+                return true;
+            }
 
+            return false;
+        }
+        else return false;
+    }
     public static void SendKeyForDuration(Keys key, int durationMilliseconds)
     {
         SendKeys.Send(key.ToString());
@@ -110,6 +135,58 @@ public class ScreenScanner
         if (time != 2) wait(time); // this is wait method above 
         if (time > 0) keybd_event(key, 0, KEYEVENTF_KEYUP, 0); //Release Key 
     }
+
+    /**/
+    public static void MouseClick(int button = 2) // argument is button, 1 or 2, 1 is default
+    {
+        //Call the imported function with the cursor's current position
+        int X = Cursor.Position.X;
+        int Y = Cursor.Position.Y;
+        if (button == 1) mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, X, Y, 0, 0);
+        else if (button == 2)
+            mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, X, Y, 0, 0);
+    }
+    public static void MouseMove(int x, int y)
+    {
+        Cursor.Position = new Point(x, y);
+    }
+    public static void Click(int x, int y, int button = 2)
+    {
+        MouseMove(x, y);
+        MouseClick(button); 
+    }
+    public Color GetColorAt(int x, int y)
+    {
+        Rectangle bounds = new Rectangle(x, y, 1, 1);
+        using (Graphics g = Graphics.FromImage(bmp))
+            g.CopyFromScreen(bounds.Location, Point.Empty, bounds.Size);
+        return bmp.GetPixel(0, 0);
+    }
+    /**/
+
+    //not used yet as there are no color objects to call with, this will handle routing
+    public static int ColorToInt(Color color)
+    {
+        Console.WriteLine((int)(Math.Pow(256, 2) * color.R + 256 * color.G + color.B));
+        return (int)(Math.Pow(256, 2) * color.R + 256 * color.G + color.B);
+    }
+
+    public static int Combat()
+    {
+        //method to handle combat key bindings, dependent on game this can be changed. 
+        //it will return 1 to move it backwards in state 
+        PressKey(ONE, 50);
+        PressKey(TWO, 50);
+        PressKey(THREE, 5000);
+        PressKey(FOUR, 500);
+        PressKey(THREE, 500);
+        PressKey(TWO, 50);
+        Thread.Sleep(24850); //allow for combat to happen
+        PressKey(FIVE, 50);
+        PressKey(TWO, 200);
+
+        return 1; 
+    }
     
     public static void Main()
     {
@@ -118,12 +195,13 @@ public class ScreenScanner
         int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
         // Calculate the center coordinates
-        int centerX = screenWidth / 2;
-        int centerY = screenHeight / 2;
-
+        int dotX = screenWidth / 2;
+        int dotY = (screenHeight / 2)-45;
+        int arX = screenWidth / 2;
+        int arY = screenHeight / 2;
         // Get the pixel color at the center coordinates
         IntPtr hdc = GetDC(IntPtr.Zero);
-        int pixel = GetPixel(hdc, centerX, centerY);
+        int pixel = GetPixel(hdc, dotX, dotY);
         ReleaseDC(IntPtr.Zero, hdc);
 
         // Extract RGB values from the pixel
@@ -132,18 +210,42 @@ public class ScreenScanner
         int pixelG = (int)((pixelColor >> 8) & 0xFF);
         int pixelB = (int)((pixelColor >> 16) & 0xFF);
 
+
         bool isRedColor = ScreenScanner.IsRedColor(pixelR, pixelG, pixelB);
 
-        if (isRedColor)
+     
+        while (isRedColor)
         {
             Console.WriteLine("Solid red color detected at the center of the screen!");
-            PressKey(WKEY, 50);
+            
+
+            int rightX = ScreenScanner.GetSystemMetrics(ScreenScanner.SM_CXSCREEN) - 1;
+            int rightY = ScreenScanner.GetSystemMetrics(ScreenScanner.SM_CYSCREEN) / 2;
+
+            // Move cursor 
+            //Point mousePosition = Control.MousePosition;
+
+            //this will become the location method
+            //this checks an arrow at 0,0 that will change based on desired location pre-defined within lua
+            //checking for any type of green if it is not the correct value it will turn pressing q or e to turn until it is green 
+            int Arpixel = GetPixel(hdc, dotX, dotY);
+            ReleaseDC(IntPtr.Zero, hdc);
+            int ArpixelColor = (int)(pixel & 0x00FFFFFF);
+            int ArpixelR = (int)(pixelColor & 0xFF);
+            int ArpixelG = (int)((pixelColor >> 8) & 0xFF);
+            int ArpixelB = (int)((pixelColor >> 16) & 0xFF);
+
+            //the issue is this check is not looking for the correct value 
+            bool isGreenColor = ScreenScanner.IsBrightGreen(ArpixelR, ArpixelB,ArpixelG); //why is this returning false
+            //while not green press a or d until green then w
+            while (isGreenColor)
+            {
+                Combat();
+            }
+
         }
-        else
-        {
-            Console.WriteLine("No solid red color detected at the center of the screen.");
-        }
+        
     }
 
-   
+  
 }
