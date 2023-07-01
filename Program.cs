@@ -85,23 +85,10 @@ public class ScreenScanner
         // Check if the color falls within the range of red shades
         return r >= 200 && g <= 50 && b <= 50;
     }
-    public static bool IsBrightGreen(int r, int b, int g)
-    {
-        // Define the range of RGB values for bright green
-        int greenThreshold = 250;
-        int bThreshold = 50;
-        int rThreshold = 50;
-        // Check if the RGB values fall within the range of bright green shades
-        if (r < rThreshold && b < bThreshold)
-        {
-            if (g >= greenThreshold)
-            {
-                return true;
-            }
+    public static bool IsBrightGreen(int r, int g, int b)
+{
+        return r <= 50 && g >= 200 && b <= 50;
 
-            return false;
-        }
-        else return false;
     }
     public static void SendKeyForDuration(Keys key, int durationMilliseconds)
     {
@@ -119,7 +106,7 @@ public class ScreenScanner
     }
     public static void FocusGame() // Focus game window
     {
-        var prc = Process.GetProcessesByName("Game");
+        var prc = Process.GetProcessesByName("WowClassic");
         if (prc.Length > 0)
         {
             SetForegroundWindow(prc[0].MainWindowHandle);
@@ -155,8 +142,9 @@ public class ScreenScanner
         MouseMove(x, y);
         MouseClick(button); 
     }
-    public Color GetColorAt(int x, int y)
+    public static Color GetColorAt(int x, int y)
     {
+        Bitmap bmp = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
         Rectangle bounds = new Rectangle(x, y, 1, 1);
         using (Graphics g = Graphics.FromImage(bmp))
             g.CopyFromScreen(bounds.Location, Point.Empty, bounds.Size);
@@ -212,7 +200,7 @@ public class ScreenScanner
 
 
         bool isRedColor = ScreenScanner.IsRedColor(pixelR, pixelG, pixelB);
-
+        int step = 0; 
      
         while (isRedColor)
         {
@@ -228,19 +216,28 @@ public class ScreenScanner
             //this will become the location method
             //this checks an arrow at 0,0 that will change based on desired location pre-defined within lua
             //checking for any type of green if it is not the correct value it will turn pressing q or e to turn until it is green 
-            int Arpixel = GetPixel(hdc, dotX, dotY);
-            ReleaseDC(IntPtr.Zero, hdc);
-            int ArpixelColor = (int)(pixel & 0x00FFFFFF);
-            int ArpixelR = (int)(pixelColor & 0xFF);
-            int ArpixelG = (int)((pixelColor >> 8) & 0xFF);
-            int ArpixelB = (int)((pixelColor >> 16) & 0xFF);
+            IntPtr hdcd = GetDC(IntPtr.Zero);
+            int Arpixel = GetPixel(hdc, arX, arY);
+            ReleaseDC(IntPtr.Zero, hdcd);
+            int ArpixelColor = (int)(Arpixel & 0x00FFFFFF);
+            int ArpixelR = (int)(ArpixelColor & 0xFF);
+            int ArpixelG = (int)((ArpixelColor >> 8) & 0xFF);
+            int ArpixelB = (int)((ArpixelColor >> 16) & 0xFF);
 
-            //the issue is this check is not looking for the correct value 
-            bool isGreenColor = ScreenScanner.IsBrightGreen(ArpixelR, ArpixelB,ArpixelG); //why is this returning false
+            Color decide = ScreenScanner.GetColorAt(0, 0);
+            int col = ColorToInt(decide);
+            Console.WriteLine(col); //we need to change this to retrieve current facing direction, 
+
+            bool isGreenColor = ScreenScanner.IsBrightGreen(ArpixelR, ArpixelG, ArpixelB); 
+
             //while not green press a or d until green then w
             while (isGreenColor)
             {
                 Combat();
+            }
+            if (!isGreenColor)
+            {
+                PressKey(QKEY, 10);
             }
 
         }
