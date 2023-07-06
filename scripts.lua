@@ -37,3 +37,26 @@ function(progress, r1, g1, b1, a1, r2, g2, b2, a2)
     --local facing = getplayerfacing()
     return yi, yf, fa,1
 end
+--find angle of current waypoint in radians, it is then converted to a 0-256 scale in order to pass into a color code
+function()
+
+    local angle = TomTom:GetDirectionToActivePoint() - GetPlayerFacing()
+
+    angle = angle% (2*math.pi)
+    local colorValue = 256* angle/ (2*math.pi)
+    local red = colorValue
+    local green = 0 -- Set the green component to 0
+    local blue = 0 -- Set the blue component to 0
+    local alpha = 1 -- Set the alpha component to 1 (fully opaque)
+    return red, green, blue, alpha
+end
+function()
+    
+    local angle = TomTom:GetDirectionToActivePoint() - GetPlayerFacing()
+    angle = angle% (2*math.pi)
+    local colorValue = 256* angle/ (2*math.pi)
+    return string.format("%s %f %f", "current % facing direction: ", angle, colorValue)
+    
+    
+    
+end
