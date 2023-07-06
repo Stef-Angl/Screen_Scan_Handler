@@ -51,7 +51,7 @@ public class ScreenScanner
     public const int WKEY = 0x57; // Key W 
     public const int EKEY = 0x45; // Key E 
     public const int SKEY = 0x53; // Key S 
-    public const int SPACEBAR = 0x20; // espaço
+    public const int SPACEBAR = 0x20; // SPACE
     public const int PLAYERSTATSX = 1574; // pixel status of player with no addon
     public const int PLAYERSTATSY = 470; // pixel status of player with no addon
     public const int RANGEX = 1662; // pixel status of player with no addon
